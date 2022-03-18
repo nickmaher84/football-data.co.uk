@@ -1,0 +1,7 @@
+requests
+sqlalchemy
+alembic
+pymysql
+pandas
+BeautifulSoup4
+python-dateutil
