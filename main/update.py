@@ -2,6 +2,7 @@ from main.database import engine
 from main.schema import countries, leagues, seasons
 
 from main import scrape
+from dateutil.parser import parse
 
 
 def load_countries():
@@ -16,7 +17,7 @@ def load_countries():
 
         if existing.fetchone():
             engine.execute(
-                countries.update().where(countries.primary_key == country['url']).values(country=country['name'])
+                countries.update().where(countries.c.url == country['url']).values(country=country['name'])
             )
         else:
             engine.execute(
@@ -38,10 +39,10 @@ def load_leagues():
                 league['name'] = country['name']
             print('-', league['name'])
 
-            country_data = engine.execute(
+            result = engine.execute(
                 countries.select().where(countries.c.country == country['name'])
             ).fetchone()
-            league['country'] = country_data['country_code']
+            league['country'] = result['country_code']
 
             existing = engine.execute(
                 leagues.select().where(leagues.c.division == league['code'])
@@ -50,7 +51,7 @@ def load_leagues():
             if existing.fetchone():
                 engine.execute(
                     leagues.update().where(
-                        leagues.primary_key == league['code']
+                        leagues.c.division == league['code']
                     ).values(
                         league=league['name'],
                         country_code=league['country'],
@@ -83,7 +84,7 @@ def load_seasons():
             if existing.fetchone():
                 engine.execute(
                     seasons.update().where(
-                        seasons.primary_key == season['url']
+                        seasons.c.url == season['url']
                     ).values(
                         division=season['code'],
                         season=season['season'],
@@ -99,7 +100,18 @@ def load_seasons():
                 )
 
 
-if __name__ == '__main__':
-    load_countries(); print()
-    load_leagues(); print()
-    load_seasons()
+def update_seasons():
+    print('Updating last modified dates...')
+    results = engine.execute(seasons.select().order_by(seasons.c.season.desc(), seasons.c.division))
+
+    for season in results.fetchall():
+        last_modified = scrape.fetch_last_modified(season['url'])
+        print(season['url'], last_modified)
+
+        engine.execute(
+            seasons.update().where(
+                seasons.c.url == season['url']
+            ).values(
+                last_modified=parse(last_modified)
+            )
+        )

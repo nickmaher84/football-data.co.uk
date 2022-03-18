@@ -1,6 +1,6 @@
 from main.database import metadata
 from sqlalchemy import Table, Column, Index
-from sqlalchemy.types import String, Integer, Date, Time
+from sqlalchemy.types import String, Integer, Date, Time, DateTime
 
 matches = Table(
     'match', metadata,
@@ -29,6 +29,8 @@ seasons = Table(
     Column('url', String(100), primary_key=True),
     Column('division', String(3), nullable=False),
     Column('season', String(20), nullable=False),
+    Column('last_modified', DateTime),
+    Column('last_loaded', DateTime),
     Index('uq_season', 'division', 'season', unique=True)
 )
 

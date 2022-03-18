@@ -1,5 +1,5 @@
 from main.database import engine
-from main.schema import matches
+from main.schema import matches, seasons
 
 import pandas as pd
 import numpy as np
@@ -59,3 +59,27 @@ def upload_file(url):
     engine.execute(
         matches.insert().values(match_data.replace({np.nan: None}).to_dict('records'))
     )
+    engine.execute(
+        seasons.update().where(
+            seasons.c.url == url
+        ).values(
+            last_loaded=pd.Timestamp.now()
+        )
+    )
+
+
+def upload_recent_files(force_reload=False):
+    if force_reload:
+        results = engine.execute(
+            seasons.select().order_by(seasons.c.last_modified.desc())
+        )
+
+    else:
+        results = engine.execute(
+            seasons.select().where(
+                (seasons.c.last_modified > seasons.c.last_loaded) | (seasons.c.last_loaded == None)
+            ).order_by(seasons.c.last_modified.desc())
+        )
+
+    for season in results.fetchall():
+        upload_file(season['url'])
