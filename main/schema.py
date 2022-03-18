@@ -23,3 +23,26 @@ matches = Table(
     Column('url', String(100), nullable=False, index=True),
     Index('uq_match', 'date', 'away_team', unique=True),
 )
+
+seasons = Table(
+    'season', metadata,
+    Column('url', String(100), primary_key=True),
+    Column('division', String(3), nullable=False),
+    Column('season', String(20), nullable=False),
+    Index('uq_season', 'division', 'season', unique=True)
+)
+
+leagues = Table(
+    'league', metadata,
+    Column('division', String(3), primary_key=True),
+    Column('league', String(100), nullable=False),
+    Column('country_code', String(3), nullable=False),
+    Index('uq_league', 'country_code', 'league', unique=True)
+)
+
+countries = Table(
+    'country', metadata,
+    Column('country_code', String(3), primary_key=True),
+    Column('country', String(20), nullable=False, unique=True),
+    Column('url', String(100), nullable=False, unique=True),
+)
