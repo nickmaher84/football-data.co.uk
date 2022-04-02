@@ -133,13 +133,7 @@ def upload_file(url):
             insert_records(match_asian_handicaps, match_asian_handicap_data)
 
     ''' Update Last Loaded Date '''
-    engine.execute(
-        seasons.update().where(
-            seasons.c.url == url
-        ).values(
-            last_loaded=pd.Timestamp.now()
-        )
-    )
+    update_last_loaded(url)
 
 
 def upload_recent_files(force_reload=False):
