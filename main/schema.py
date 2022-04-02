@@ -48,3 +48,21 @@ countries = Table(
     Column('country', String(20), nullable=False, unique=True),
     Column('url', String(100), nullable=False, unique=True),
 )
+
+statistics = Table(
+    'statistic', metadata,
+    Column('code', String(3), primary_key=True),
+    Column('name', String(20), unique=True)
+)
+
+match_statistics = Table(
+    'match_statistics', metadata,
+    Column('date', Date, primary_key=True, nullable=False),
+    Column('statistic', String(3), primary_key=True, nullable=False, index=True),
+    Column('home_team', String(100), primary_key=True, nullable=False),
+    Column('home_stat', Integer),
+    Column('away_stat', Integer),
+    Column('away_team', String(100), nullable=False),
+    Column('url', String(100), nullable=False, index=True),
+    Index('uq_match_statistics', 'date', 'away_team', 'statistic', unique=True)
+)
