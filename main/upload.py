@@ -1,111 +1,27 @@
 from main.database import engine
 from main.schema import matches, statistics, match_statistics, bookmakers, match_odds, match_over_unders, match_asian_handicaps, seasons
 
+import yaml
 import pandas as pd
 import numpy as np
-
-match_headers = {
-    'Date': 'date',
-    'Time': 'time',
-    'Div': 'division',
-    'Country': 'country',
-    'League': 'league',
-    'Season': 'season',
-    'HT': 'home_team',
-    'Home': 'home_team',
-    'HomeTeam': 'home_team',
-    'AT': 'away_team',
-    'Away': 'away_team',
-    'AwayTeam': 'away_team',
-    'HG': 'home_goals',
-    'FTHG': 'home_goals',
-    'AG': 'away_goals',
-    'FTAG': 'away_goals',
-    'Res': 'result',
-    'FTR': 'result',
-    'HTHG': 'ht_home_goals',
-    'HTR': 'ht_result',
-    'HTAG': 'ht_away_goals',
-    'Referee': 'referee',
-    'Attendance': 'attendance',
-}
-statistics_dict = {
-    'S': 'Shots',
-    'ST': 'Shots on Target',
-    'HW': 'Hit Woodwork',
-    'C': 'Corners',
-    'F': 'Fouls',
-    'FKC': 'Free-kicks Conceded',
-    'O': 'Offsides',
-    'Y': 'Yellow Cards',
-    'R': 'Red Cards',
-    'BP': 'Booking Points',
-}
-bookmakers_dict = {
-    'Avg': 'Market Average',
-    'AvgC': 'Market Average (Closing)',
-    'Max': 'Market Maximum',
-    'MaxC': 'Market Maximum (Closing)',
-    'Bb': 'Betbrain',
-    'BbAv': 'Betbrain Average',
-    'BbMx': 'Betbrain Maximum',
-    'B365': 'Bet365',
-    'B365C': 'Bet365 (Closing)',
-    'BW': 'Bet&Win',
-    'BWC': 'Bet&Win (Closing)',
-    'IW': 'Interwetten',
-    'IWC': 'Interwetten (Closing)',
-    'PS': 'Pinnacle',
-    'PSC': 'Pinnacle (Closing)',
-    'VC': 'Victor Chandler',
-    'VCC': 'Victor Chandler (Closing)',
-    'WH': 'William Hill',
-    'WHC': 'William Hill (Closing)',
-    'BS': 'Blue Square',
-    'GB': 'Gamebookers',
-    'LB': 'Ladbrokes',
-    'P': 'Pinnacle',
-    'SB': 'SportingBet',
-    'SJ': 'Stan James',
-    'SO': 'SportingOdds',
-    'SY': 'StanleyBet',
-}
 
 
 def upload_statistics():
     print('Loading data for statistics')
 
-    for code, name in statistics_dict.items():
-        existing = engine.execute(
-            statistics.select().where(statistics.c.code == code)
-        )
+    with open('data/statistics.yml') as f:
+        mappings = yaml.safe_load(f)
 
-        if existing.fetchone():
-            engine.execute(
-                statistics.update().where(statistics.c.code == code).values(name=name)
-            )
-        else:
-            engine.execute(
-                statistics.insert().values(code=code, name=name)
-            )
+    upsert_records(statistics, mappings)
 
 
 def upload_bookmakers():
     print('Loading data for bookmakers')
 
-    for code, name in bookmakers_dict.items():
-        existing = engine.execute(
-            bookmakers.select().where(bookmakers.c.code == code)
-        )
+    with open('data/bookmakers.yml') as f:
+        mappings = yaml.safe_load(f)
 
-        if existing.fetchone():
-            engine.execute(
-                bookmakers.update().where(bookmakers.c.code == code).values(name=name.replace(' (Closing)', ''), closing='(Closing)' in name)
-            )
-        else:
-            engine.execute(
-                bookmakers.insert().values(code=code, name=name.replace(' (Closing)', ''), closing='(Closing)' in name)
-            )
+    upsert_records(bookmakers, mappings)
 
 
 def upload_file(url):
@@ -125,8 +41,11 @@ def upload_file(url):
         subset=['Date'],
     )
 
-    subset = [column for column in df.columns if column in match_headers]
-    match_data = df[subset].rename(columns=match_headers)
+    with open('data/column_mappings.yml') as f:
+        column_mappings = yaml.safe_load(f)
+        
+    subset = [column for column in df.columns if column in column_mappings]
+    match_data = df[subset].rename(columns=column_mappings)
     match_data = match_data.apply(lambda x: x.str.strip() if x.dtype == 'object' else x)
     match_data['url'] = url
 
@@ -137,9 +56,12 @@ def upload_file(url):
     ''' Load Match Statistics '''
     delete_records_for_url(match_statistics, url)
 
-    for statistic in statistics_dict:
+    with open('data/statistics.yml') as f:
+        mappings = yaml.safe_load(f)
+
+    for statistic in mappings:
         if 'H' + statistic in df.columns:
-            print(statistics_dict.get(statistic))
+            print(mappings.get(statistic))
 
             match_statistic_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
             match_statistic_data['statistic'] = statistic
@@ -153,9 +75,12 @@ def upload_file(url):
     delete_records_for_url(match_over_unders, url)
     delete_records_for_url(match_asian_handicaps, url)
 
-    for bookmaker in bookmakers_dict:
+    with open('data/bookmakers.yml') as f:
+        mappings = yaml.safe_load(f)
+
+    for bookmaker in mappings:
         if bookmaker + 'H' in df.columns:
-            print('{bookmaker} - Match Odds'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+            print('{bookmaker} - Match Odds'.format(bookmaker=mappings.get(bookmaker['name'])))
 
             match_odds_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
             match_odds_data['bookmaker'] = bookmaker
@@ -170,7 +95,7 @@ def upload_file(url):
             insert_records(match_odds, match_odds_data)
 
         if bookmaker + '>2.5' in df.columns:
-            print('{bookmaker} - Over/Under'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+            print('{bookmaker} - Over/Under'.format(bookmaker=mappings.get(bookmaker['name'])))
 
             match_over_under_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
             match_over_under_data['bookmaker'] = bookmaker
@@ -184,7 +109,7 @@ def upload_file(url):
             insert_records(match_over_unders, match_over_under_data)
 
         if bookmaker + 'AHH' in df.columns:
-            print('{bookmaker} - Asian Handicap'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+            print('{bookmaker} - Asian Handicap'.format(bookmaker=mappings.get(bookmaker['name'])))
 
             match_asian_handicap_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
             match_asian_handicap_data['bookmaker'] = bookmaker
@@ -198,7 +123,7 @@ def upload_file(url):
             elif bookmaker + 'AH' in df.columns:
                 match_asian_handicap_data['handicap'] = df[bookmaker + 'AH']
 
-            elif 'Closing' in bookmakers_dict[bookmaker]:
+            elif mappings.get(bookmaker['closing']):
                 match_asian_handicap_data['handicap'] = df['AHCh']
 
             else:
@@ -243,4 +168,30 @@ def delete_records_for_url(table, url):
 def insert_records(table, df):
     engine.execute(
         table.insert().values(df.replace({np.nan: None}).to_dict('records'))
+    )
+
+
+def upsert_records(table, records):
+    for code, values in records.items():
+        if type(values) is str:
+            values = {'name': values}
+
+        existing = engine.execute(
+            table.select().where(table.c.code == code)
+        )
+
+        if existing.fetchone():
+            engine.execute(
+                table.update().where(table.c.code == code).values(values)
+            )
+        else:
+            values.update(code=code)
+            engine.execute(
+                table.insert().values(values)
+            )
+
+
+def update_last_loaded(url):
+    engine.execute(
+        seasons.update().where(seasons.c.url == url).values(last_loaded=pd.Timestamp.now())
     )
