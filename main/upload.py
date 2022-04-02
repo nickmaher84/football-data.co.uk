@@ -1,5 +1,5 @@
 from main.database import engine
-from main.schema import matches, statistics, match_statistics, seasons
+from main.schema import matches, statistics, match_statistics, bookmakers, match_odds, match_over_unders, match_asian_handicaps, seasons
 
 import pandas as pd
 import numpy as np
@@ -41,6 +41,35 @@ statistics_dict = {
     'R': 'Red Cards',
     'BP': 'Booking Points',
 }
+bookmakers_dict = {
+    'Avg': 'Market Average',
+    'AvgC': 'Market Average (Closing)',
+    'Max': 'Market Maximum',
+    'MaxC': 'Market Maximum (Closing)',
+    'Bb': 'Betbrain',
+    'BbAv': 'Betbrain Average',
+    'BbMx': 'Betbrain Maximum',
+    'B365': 'Bet365',
+    'B365C': 'Bet365 (Closing)',
+    'BW': 'Bet&Win',
+    'BWC': 'Bet&Win (Closing)',
+    'IW': 'Interwetten',
+    'IWC': 'Interwetten (Closing)',
+    'PS': 'Pinnacle',
+    'PSC': 'Pinnacle (Closing)',
+    'VC': 'Victor Chandler',
+    'VCC': 'Victor Chandler (Closing)',
+    'WH': 'William Hill',
+    'WHC': 'William Hill (Closing)',
+    'BS': 'Blue Square',
+    'GB': 'Gamebookers',
+    'LB': 'Ladbrokes',
+    'P': 'Pinnacle',
+    'SB': 'SportingBet',
+    'SJ': 'Stan James',
+    'SO': 'SportingOdds',
+    'SY': 'StanleyBet',
+}
 
 
 def upload_statistics():
@@ -58,6 +87,24 @@ def upload_statistics():
         else:
             engine.execute(
                 statistics.insert().values(code=code, name=name)
+            )
+
+
+def upload_bookmakers():
+    print('Loading data for bookmakers')
+
+    for code, name in bookmakers_dict.items():
+        existing = engine.execute(
+            bookmakers.select().where(bookmakers.c.code == code)
+        )
+
+        if existing.fetchone():
+            engine.execute(
+                bookmakers.update().where(bookmakers.c.code == code).values(name=name.replace(' (Closing)', ''), closing='(Closing)' in name)
+            )
+        else:
+            engine.execute(
+                bookmakers.insert().values(code=code, name=name.replace(' (Closing)', ''), closing='(Closing)' in name)
             )
 
 
@@ -95,9 +142,9 @@ def upload_file(url):
     engine.execute(
         match_statistics.delete().where(match_statistics.c.url == url)
     )
-    for statistic in statistics:
+    for statistic in statistics_dict:
         if 'H' + statistic in df.columns:
-            print(statistics.get(statistic))
+            print(statistics_dict.get(statistic))
 
             match_statistic_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
             match_statistic_data['statistic'] = statistic
@@ -105,6 +152,76 @@ def upload_file(url):
             match_statistic_data['away_stat'] = df['A' + statistic]
             engine.execute(
                 match_statistics.insert().values(match_statistic_data.replace({np.nan: None}).to_dict('records'))
+            )
+
+    ''' Load Match Statistics '''
+    engine.execute(
+        match_odds.delete().where(match_odds.c.url == url)
+    )
+    engine.execute(
+        match_over_unders.delete().where(match_over_unders.c.url == url)
+    )
+    engine.execute(
+        match_asian_handicaps.delete().where(match_asian_handicaps.c.url == url)
+    )
+    for bookmaker in bookmakers_dict:
+        if bookmaker + 'H' in df.columns:
+            print('{bookmaker} - Match Odds'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+
+            match_odds_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
+            match_odds_data['bookmaker'] = bookmaker
+            match_odds_data['home'] = df[bookmaker + 'H']
+            match_odds_data['draw'] = df[bookmaker + 'D']
+            match_odds_data['away'] = df[bookmaker + 'A']
+
+            if 'Bb' in bookmaker:
+                match_odds_data['count'] = df['Bb1X2']
+
+            match_odds_data = match_odds_data.dropna(axis=0, subset=['home', 'draw', 'away'])
+            engine.execute(
+                match_odds.insert().values(match_odds_data.replace({np.nan: None}).to_dict('records'))
+            )
+
+        if bookmaker + '>2.5' in df.columns:
+            print('{bookmaker} - Over/Under'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+
+            match_over_under_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
+            match_over_under_data['bookmaker'] = bookmaker
+            match_over_under_data['over'] = df[bookmaker + '>2.5']
+            match_over_under_data['under'] = df[bookmaker + '<2.5']
+
+            if 'Bb' in bookmaker:
+                match_over_under_data['count'] = df['BbOU']
+
+            match_over_under_data = match_over_under_data.dropna(axis=0, subset=['over', 'under'])
+            engine.execute(
+                match_over_unders.insert().values(match_over_under_data.replace({np.nan: None}).to_dict('records'))
+            )
+
+        if bookmaker + 'AHH' in df.columns:
+            print('{bookmaker} - Asian Handicap'.format(bookmaker=bookmakers_dict.get(bookmaker)))
+
+            match_asian_handicap_data = match_data[['date', 'home_team', 'away_team', 'url']].copy()
+            match_asian_handicap_data['bookmaker'] = bookmaker
+            match_asian_handicap_data['home'] = df[bookmaker + 'AHH']
+            match_asian_handicap_data['away'] = df[bookmaker + 'AHA']
+
+            if 'Bb' in bookmaker:
+                match_asian_handicap_data['count'] = df['BbAH'].apply(lambda x: str(x).replace(u'\xa0', '').replace('nan', '0'))
+                match_asian_handicap_data['handicap'] = df['BbAHh'].apply(lambda x: str(x).split(',')[0])
+
+            elif bookmaker + 'AH' in df.columns:
+                match_asian_handicap_data['handicap'] = df[bookmaker + 'AH']
+
+            elif 'Closing' in bookmakers_dict[bookmaker]:
+                match_asian_handicap_data['handicap'] = df['AHCh']
+
+            else:
+                match_asian_handicap_data['handicap'] = df['AHh']
+
+            match_asian_handicap_data = match_asian_handicap_data.dropna(axis=0, subset=['home', 'away'])
+            engine.execute(
+                match_asian_handicaps.insert().values(match_asian_handicap_data.replace({np.nan: None}).to_dict('records'))
             )
 
     ''' Update Last Loaded Date '''
