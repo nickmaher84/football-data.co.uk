@@ -131,17 +131,12 @@ def upload_file(url):
     match_data['url'] = url
 
     ''' Load Match Info '''
-    engine.execute(
-        matches.delete().where(matches.c.url == url)
-    )
-    engine.execute(
-        matches.insert().values(match_data.replace({np.nan: None}).to_dict('records'))
-    )
+    delete_records_for_url(matches, url)
+    insert_records(matches, match_data)
 
     ''' Load Match Statistics '''
-    engine.execute(
-        match_statistics.delete().where(match_statistics.c.url == url)
-    )
+    delete_records_for_url(match_statistics, url)
+
     for statistic in statistics_dict:
         if 'H' + statistic in df.columns:
             print(statistics_dict.get(statistic))
@@ -150,20 +145,14 @@ def upload_file(url):
             match_statistic_data['statistic'] = statistic
             match_statistic_data['home_stat'] = df['H' + statistic]
             match_statistic_data['away_stat'] = df['A' + statistic]
-            engine.execute(
-                match_statistics.insert().values(match_statistic_data.replace({np.nan: None}).to_dict('records'))
-            )
+
+            insert_records(match_statistics, match_statistic_data)
 
     ''' Load Match Statistics '''
-    engine.execute(
-        match_odds.delete().where(match_odds.c.url == url)
-    )
-    engine.execute(
-        match_over_unders.delete().where(match_over_unders.c.url == url)
-    )
-    engine.execute(
-        match_asian_handicaps.delete().where(match_asian_handicaps.c.url == url)
-    )
+    delete_records_for_url(match_odds, url)
+    delete_records_for_url(match_over_unders, url)
+    delete_records_for_url(match_asian_handicaps, url)
+
     for bookmaker in bookmakers_dict:
         if bookmaker + 'H' in df.columns:
             print('{bookmaker} - Match Odds'.format(bookmaker=bookmakers_dict.get(bookmaker)))
@@ -178,9 +167,7 @@ def upload_file(url):
                 match_odds_data['count'] = df['Bb1X2']
 
             match_odds_data = match_odds_data.dropna(axis=0, subset=['home', 'draw', 'away'])
-            engine.execute(
-                match_odds.insert().values(match_odds_data.replace({np.nan: None}).to_dict('records'))
-            )
+            insert_records(match_odds, match_odds_data)
 
         if bookmaker + '>2.5' in df.columns:
             print('{bookmaker} - Over/Under'.format(bookmaker=bookmakers_dict.get(bookmaker)))
@@ -194,9 +181,7 @@ def upload_file(url):
                 match_over_under_data['count'] = df['BbOU']
 
             match_over_under_data = match_over_under_data.dropna(axis=0, subset=['over', 'under'])
-            engine.execute(
-                match_over_unders.insert().values(match_over_under_data.replace({np.nan: None}).to_dict('records'))
-            )
+            insert_records(match_over_unders, match_over_under_data)
 
         if bookmaker + 'AHH' in df.columns:
             print('{bookmaker} - Asian Handicap'.format(bookmaker=bookmakers_dict.get(bookmaker)))
@@ -220,9 +205,7 @@ def upload_file(url):
                 match_asian_handicap_data['handicap'] = df['AHh']
 
             match_asian_handicap_data = match_asian_handicap_data.dropna(axis=0, subset=['home', 'away'])
-            engine.execute(
-                match_asian_handicaps.insert().values(match_asian_handicap_data.replace({np.nan: None}).to_dict('records'))
-            )
+            insert_records(match_asian_handicaps, match_asian_handicap_data)
 
     ''' Update Last Loaded Date '''
     engine.execute(
@@ -249,3 +232,15 @@ def upload_recent_files(force_reload=False):
 
     for season in results.fetchall():
         upload_file(season['url'])
+
+
+def delete_records_for_url(table, url):
+    engine.execute(
+        table.delete().where(table.c.url == url)
+    )
+
+
+def insert_records(table, df):
+    engine.execute(
+        table.insert().values(df.replace({np.nan: None}).to_dict('records'))
+    )
