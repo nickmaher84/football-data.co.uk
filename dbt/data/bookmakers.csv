@@ -1,0 +1,27 @@
+code,name,closing
+Max,Market Maximum,0
+MaxC,Market Maximum,1
+Avg,Market Average,0
+AvgC,Market Average,1
+BbMx,Betbrain Maximum,0
+BbAv,Betbrain Average,0
+B365,Bet365,0
+B365C,Bet365,1
+BW,Bet&Win,0
+BWC,Bet&Win,1
+IW,Interwetten,0
+IWC,Interwetten,1
+P,Pinnacle,0
+PS,Pinnacle,0
+PSC,Pinnacle,1
+VC,Victor Chandler,0
+VCC,Victor Chandler,1
+WH,William Hill,0
+WHC,William Hill,1
+BS,Blue Square,0
+GB,Gamebookers,0
+LB,Ladbrokes,0
+SB,SportingBet,0
+SJ,Stan James,0
+SO,SportingOdds,0
+SY,StanleyBet,0

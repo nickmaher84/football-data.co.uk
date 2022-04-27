@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: stg_match
+  - name: stg_match_statistic
+  - name: stg_match_1x2
+  - name: stg_match_over_under
+  - name: stg_match_asian_handicap

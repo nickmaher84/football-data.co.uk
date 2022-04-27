@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: football-data
+    tables:
+      - name: raw
+      - name: season
+      - name: league
+      - name: country

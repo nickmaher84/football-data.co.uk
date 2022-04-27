@@ -2,15 +2,14 @@ import requests
 from bs4 import BeautifulSoup
 from re import compile
 from urllib.parse import urljoin
+from datetime import datetime
+from csv import DictReader
 
 
-def available_countries(download_flags=False):
+def countries(download_flags=False):
     response = requests.get('http://football-data.co.uk/data.php')
 
-    soup = BeautifulSoup(
-        response.text,
-        'html5lib',
-    )
+    soup = BeautifulSoup(response.text, 'html5lib')
 
     flags = soup.find_all(
         'img',
@@ -19,7 +18,6 @@ def available_countries(download_flags=False):
         a=True,
     )
 
-    countries = []
     for flag in flags:
         country = {
             'name': flag.parent.parent.text.strip(),
@@ -32,25 +30,20 @@ def available_countries(download_flags=False):
         else:
             country['image'] = flag['src'].replace('http://livescore.football-data.co.uk/', '')
 
-        countries.append(country)
-
-    return countries
+        yield country
 
 
-def available_leagues(url):
+def leagues(url):
     response = requests.get(url)
 
-    soup = BeautifulSoup(
-        response.text,
-        'html5lib',
-    )
+    soup = BeautifulSoup(response.text, 'html5lib')
 
     links = soup.find_all(
         'a',
         href=compile(r'\.csv'),
     )
 
-    leagues = {}
+    league_dict = {}
     for link in links:
         if link.text == 'CSV':
             continue
@@ -58,63 +51,63 @@ def available_leagues(url):
         filename = link['href'].split('/').pop()
         league_code = filename.replace('.csv', '')
 
-        leagues.setdefault(league_code, link.text)
+        league_dict.setdefault(league_code, link.text)
 
-    return [{'name': name, 'code': code} for code, name in leagues.items()]
+    for code, name in league_dict.items():
+        yield {'code': code, 'name': name}
 
 
-def available_seasons(url):
+def seasons(url):
     response = requests.get(url)
 
-    soup = BeautifulSoup(
-        response.text,
-        'html5lib',
-    )
+    soup = BeautifulSoup(response.text, 'html5lib')
 
-    seasons = soup.find_all(
-        'i',
-        text=compile('Season'),
-    )
-
-    return [season.text for season in seasons]
-
-
-def available_files(url):
-    response = requests.get(url)
-
-    soup = BeautifulSoup(
-        response.text,
-        'html5lib',
-    )
-
-    links = soup.find_all(
+    files = soup.find_all(
         'a',
         href=compile(r'\.csv'),
     )
 
-    files = []
-    for link in links:
-        if link.find_previous_sibling('i'):
-            file = {
-                'league': link.text,
-                'season': link.find_previous_sibling('i').text,
-                'url': urljoin(url, link['href']),
+    for file in files:
+        if file.find_previous_sibling('i'):
+            yield {
+                'league': file.text,
+                'season': file.find_previous_sibling('i').text,
+                'url': urljoin(url, file['href']),
             }
 
-        elif link.text == 'CSV':
-            file = {
-                'league': link.text,
+        elif file.text == 'CSV':
+            yield {
+                'league': file.text,
                 'season': 'All Seasons',
-                'url': urljoin(url, link['href']),
+                'url': urljoin(url, file['href']),
             }
 
         else:
             continue
 
-        files.append(file)
 
-    return files
+def file(url):
+    with requests.get(url) as response:
+        timestamp = datetime.utcnow()
+        print('{timestamp} - Loading file {url}'.format(timestamp=timestamp, url=url))
 
+        reader = DictReader(
+            response.iter_lines(decode_unicode=True)
+        )
+
+    for row in reader:
+        yield row, timestamp
+
+
+def country_code(name):
+    with open('data/fifa_country_codes.csv') as f:
+        reader = DictReader(f)
+
+        for row in reader:
+            if row['name'] == name:
+                return row['code']
+        else:
+            raise KeyError
 
 def download_image(url):
     response = requests.get(url)

@@ -105,3 +105,6 @@ venv.bak/
 
 # Alembic stuff
 alembic.ini
+
+# PyCharm project
+.idea/

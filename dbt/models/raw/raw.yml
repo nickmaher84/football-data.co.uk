@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: raw_match
+    columns:
+      - name: country
+      - name: league
+      - name: season
+      - name: date
+      - name: time
+      - name: home_team
+      - name: home_goals
+      - name: result
+      - name: away_goals
+      - name: away_team
+      - name: ht_home_goals
+      - name: ht_result
+      - name: ht_away_goals
+      - name: referee
+      - name: attendance
+
+  - name: raw_match_statistic
+  - name: raw_match_1x2
+  - name: raw_match_over_under
+  - name: raw_match_asian_handicap

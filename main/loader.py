@@ -1,15 +1,14 @@
 from main.database import engine
-from main.schema import countries, leagues, seasons
+from main.schema import countries, leagues, seasons, raw_data
 
-from main import scrape
+from main import scraper
 from dateutil.parser import parse
 
 
 def load_countries():
     print('Loading countries...')
-    for country in scrape.available_countries():
+    for country in scraper.countries():
         print(country['name'])
-        country['code'] = country['name'][:3].upper()
 
         existing = engine.execute(
             countries.select().where(countries.c.url == country['url'])
@@ -22,7 +21,7 @@ def load_countries():
         else:
             engine.execute(
                 countries.insert().values(
-                    country_code=country['code'],
+                    country_code=scraper.country_code(country['name']),
                     country=country['name'],
                     url=country['url'],
                 )
@@ -31,10 +30,10 @@ def load_countries():
 
 def load_leagues():
     print('Loading leagues...')
-    for country in scrape.available_countries():
+    for country in scraper.countries():
         print(country['name'])
 
-        for league in scrape.available_leagues(country['url']):
+        for league in scraper.leagues(country['url']):
             if not league['name']:
                 league['name'] = country['name']
             print('-', league['name'])
@@ -69,10 +68,10 @@ def load_leagues():
 
 def load_seasons():
     print('Loading seasons...')
-    for country in scrape.available_countries():
+    for country in scraper.countries():
         print(country['name'])
 
-        for season in scrape.available_files(country['url']):
+        for season in scraper.seasons(country['url']):
             filename = season['url'].split('/').pop()
             season['code'] = filename.replace('.csv', '')
 
@@ -105,7 +104,7 @@ def update_seasons():
     results = engine.execute(seasons.select().order_by(seasons.c.season.desc(), seasons.c.division))
 
     for season in results.fetchall():
-        last_modified = scrape.fetch_last_modified(season['url'])
+        last_modified = scraper.fetch_last_modified(season['url'])
         print(season['url'], last_modified)
 
         engine.execute(
@@ -115,3 +114,53 @@ def update_seasons():
                 last_modified=parse(last_modified)
             )
         )
+
+
+def load_raw_file(url):
+    engine.execute(
+        raw_data.delete().where(
+            raw_data.c.url == url
+        )
+    )
+
+    for row, timestamp in scraper.file(url):
+        engine.execute(
+            raw_data.insert().values(
+                url=url,
+                json=row,
+                loaded_at=timestamp,
+            )
+        )
+
+    engine.execute(
+        seasons.update().where(
+            seasons.c.url == url
+        ).values(
+            last_loaded=timestamp
+        )
+    )
+
+
+def load_modified_files(force_reload=False):
+    if force_reload:
+        results = engine.execute(
+            seasons.select().order_by(seasons.c.last_modified.desc())
+        )
+
+    else:
+        results = engine.execute(
+            seasons.select().where(
+                (seasons.c.last_modified > seasons.c.last_loaded) | (seasons.c.last_loaded == None)
+            ).order_by(seasons.c.last_modified)
+        )
+
+    for season in results.fetchall():
+        load_raw_file(season['url'])
+
+
+if __name__ == '__main__':
+    # load_countries(); print()
+    # load_leagues(); print()
+    # load_seasons()
+    # update_seasons()
+    load_modified_files()
