@@ -1,7 +1,7 @@
-from main.database import engine
-from main.schema import countries, leagues, seasons, raw_data
+from database import engine
+from schema import countries, leagues, seasons, raw_data
 
-from main import scraper
+import scraper
 from dateutil.parser import parse
 
 

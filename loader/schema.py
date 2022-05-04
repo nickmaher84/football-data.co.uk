@@ -1,4 +1,4 @@
-from main.database import metadata
+from database import metadata
 from sqlalchemy import Table, Column, Index
 from sqlalchemy.types import String, DateTime, JSON
 
