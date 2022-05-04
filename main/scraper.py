@@ -109,6 +109,7 @@ def country_code(name):
         else:
             raise KeyError
 
+
 def download_image(url):
     response = requests.get(url)
     filename = response.url.replace('http://livescore.football-data.co.uk/', '')
