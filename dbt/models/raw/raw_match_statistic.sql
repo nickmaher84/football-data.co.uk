@@ -1,22 +1,22 @@
 SELECT
-  json_value(raw.json, "$.Date")            as date,
-  statistics.code                           as statistic,
+  raw.json ->> 'Date'      as date,
+  statistics.code          as statistic,
   COALESCE(
-    json_value(raw.json, "$.HT"),
-    json_value(raw.json, "$.Home"),
-    json_value(raw.json, "$.HomeTeam")
-  )                                         as home_team,
-  json_value(raw.json, concat("$.H", code)) as home_stat,
-  json_value(raw.json, concat("$.A", code)) as away_stat,
+    raw.json ->> 'HT',
+    raw.json ->> 'Home',
+    raw.json ->> 'HomeTeam'
+  )                        as home_team,
+  raw.json ->> ('H'||code) as home_stat,
+  raw.json ->> ('A'||code) as away_stat,
   COALESCE(
-    json_value(raw.json, "$.AT"),
-    json_value(raw.json, "$.Away"),
-    json_value(raw.json, "$.AwayTeam")
-  )                                         as away_team,
+    raw.json ->> 'AT',
+    raw.json ->> 'Away',
+    raw.json ->> 'AwayTeam'
+  )                        as away_team,
   raw.url
 FROM
   {{ source('football-data', 'raw') }} raw
 JOIN
-  {{ ref('statistics') }} statistics ON json_exists(raw.json, concat("$.H", code))
+  {{ ref('statistics') }} statistics ON raw.json ->> ('H'||code) IS NOT NULL
 WHERE
-  json_value(raw.json, "$.Date") != ''
+  raw.json ->> 'Date' != ''

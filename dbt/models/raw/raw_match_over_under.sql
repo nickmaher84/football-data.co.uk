@@ -1,26 +1,26 @@
 SELECT
-  json_value(raw.json, "$.Date")                       as date,
-  bookmakers.code                                      as bookmaker,
+  raw.json ->> 'Date'         as date,
+  bookmakers.code             as bookmaker,
   COALESCE(
-    json_value(raw.json, "$.HT"),
-    json_value(raw.json, "$.Home"),
-    json_value(raw.json, "$.HomeTeam")
-  )                                                    as home_team,
-  json_value(raw.json, concat("$.""", code, "<2.5""")) as under_odds,
-  json_value(raw.json, concat("$.""", code, ">2.5""")) as over_odds,
+    raw.json ->> 'HT',
+    raw.json ->> 'Home',
+    raw.json ->> 'HomeTeam'
+  )                           as home_team,
+  raw.json ->> (code||'<2.5') as under_odds,
+  raw.json ->> (code||'>2.5') as over_odds,
   COALESCE(
-    json_value(raw.json, "$.AT"),
-    json_value(raw.json, "$.Away"),
-    json_value(raw.json, "$.AwayTeam")
-  )                                                    as away_team,
+    raw.json ->> 'AT',
+    raw.json ->> 'Away',
+    raw.json ->> 'AwayTeam'
+  )                           as away_team,
   CASE
     WHEN bookmakers.name LIKE 'Betbrain %'
-    THEN json_value(raw.json, "$.BbOU")
-  END                                                  as bb_bookmakers,
+    THEN raw.json ->> 'BbOU'
+  END                         as bb_bookmakers,
   raw.url
 FROM
   {{ source('football-data', 'raw') }} raw
 JOIN
-  {{ ref('bookmakers') }} bookmakers ON json_exists(raw.json, concat("$.""", code, ">2.5"""))
+  {{ ref('bookmakers') }} bookmakers ON raw.json ->> (code||'>2.5') IS NOT NULL
 WHERE
-  json_value(raw.json, "$.Date") != ''
+  raw.json ->> 'Date' != ''
