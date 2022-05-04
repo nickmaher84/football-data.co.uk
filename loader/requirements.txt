@@ -1,10 +1,7 @@
 requests
 sqlalchemy
+psycopg2
 alembic
-pymysql
-pandas
 BeautifulSoup4
 html5lib
 python-dateutil
-pyyaml
-dbt==0.21.1
