@@ -1,0 +1,111 @@
+version: 2
+
+models:
+  - name: team
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: name
+        tests:
+          - not_null
+
+  - name: competition
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+  - name: match
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+      - name: competition_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('competition')
+              field: id
+
+      - name: home_team_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('team')
+              field: id
+
+      - name: away_team_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('team')
+              field: id
+
+  - name: match_1x2
+    columns:
+      - name: match_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('match')
+              field: id
+
+      - name: bookmaker_code
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bookmakers')
+              field: code
+
+  - name: match_over_under
+    columns:
+      - name: match_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('match')
+              field: id
+
+      - name: bookmaker_code
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bookmakers')
+              field: code
+
+  - name: match_asian_handicap
+    columns:
+      - name: match_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('match')
+              field: id
+
+      - name: bookmaker_code
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bookmakers')
+              field: code
+
+  - name: match_statistic
+    columns:
+      - name: match_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('match')
+              field: id
+
+      - name: statistic_code
+        tests:
+          - not_null
+          - relationships:
+              to: ref('statistics')
+              field: code
