@@ -1,29 +1,20 @@
 SELECT
-  CAST(raw.country as varchar(20))                 as country,
-  CAST(raw.league as varchar(100))                 as league,
-  CAST(raw.season as varchar(100))                 as season,
-  TO_DATE(raw.date, '%d/%m/%Y')                    as date,
-  TO_DATE(raw.time, '%H:%i')                       as time,
-  CAST(raw.home_team as varchar(100))              as home_team,
-  CAST(
-    NULLIF(raw.home_goals, '') as smallint
-  )                                                as home_goals,
-  CAST(raw.result as char)                         as result,
-  CAST(
-    NULLIF(raw.away_goals, '') as smallint
-  )                                                as away_goals,
-  CAST(raw.away_team as varchar(100))              as away_team,
-  CAST(
-    NULLIF(raw.ht_home_goals, '') as smallint
-  )                                                as ht_home_goals,
-  CAST(raw.ht_result as char)                      as ht_result,
-  CAST(
-    NULLIF(raw.ht_away_goals, '') as smallint
-  )                                                as ht_away_goals,
-  CAST(raw.referee as varchar(100))                as referee,
-  CAST(
-    NULLIF(NULLIF(raw.attendance, 'NA'), '') as integer
-  )                                                as attendance,
+  raw.source::varchar(20)                       as source,
+  trim(raw.country)::varchar(20)                as country,
+  trim(raw.league)::varchar(100)                as league,
+  trim(raw.season)::varchar(100)                as season,
+  TO_DATE(raw.date, 'DD/MM/YY')                 as date,
+  TO_TIMESTAMP(raw.time, 'HH24:mi')::time       as time,
+  trim(raw.home_team)::varchar(100)             as home_team,
+  NULLIF(raw.home_goals, '')::smallint          as home_goals,
+  raw.result::char                              as result,
+  NULLIF(raw.away_goals, '')::smallint          as away_goals,
+  trim(raw.away_team)::varchar(100)             as away_team,
+  NULLIF(raw.ht_home_goals, '')::smallint       as ht_home_goals,
+  raw.ht_result::char                           as ht_result,
+  NULLIF(raw.ht_away_goals, '')::smallint       as ht_away_goals,
+  trim(raw.referee)::varchar(100)               as referee,
+  NULLIF(NULLIF(raw.attendance, 'NA'), '')::int as attendance,
   raw.url
 FROM
   {{ ref('raw_match') }} raw

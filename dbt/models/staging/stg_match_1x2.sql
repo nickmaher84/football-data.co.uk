@@ -1,12 +1,13 @@
 SELECT
-  TO_DATE(raw.date, '%d/%m/%Y')                    as date,
-  CAST(raw.bookmaker as varchar(5))                as bookmaker,
-  CAST(raw.home_team as varchar(100))              as home_team,
-  CAST(NULLIF(raw.home_odds, '') as decimal(5,2))  as home_odds,
-  CAST(NULLIF(raw.draw_odds, '') as decimal(5,2))  as draw_odds,
-  CAST(NULLIF(raw.away_odds, '') as decimal(5,2))  as away_odds,
-  CAST(raw.away_team as varchar(100))              as away_team,
-  CAST(NULLIF(raw.bb_bookmakers, '') as smallint)  as bb_bookmakers,
+  raw.source::varchar(20)                       as source,
+  TO_DATE(raw.date, 'DD/MM/YY')                 as date,
+  raw.bookmaker::varchar(5)                     as bookmaker,
+  raw.home_team::varchar(100)                   as home_team,
+  NULLIF(raw.home_odds, '')::decimal(5,2)       as home_odds,
+  NULLIF(raw.draw_odds, '')::decimal(5,2)       as draw_odds,
+  NULLIF(raw.away_odds, '')::decimal(5,2)       as away_odds,
+  raw.away_team::varchar(100)                   as away_team,
+  NULLIF(raw.bb_bookmakers, '')::smallint       as bb_bookmakers,
   raw.url
 FROM
   {{ ref('raw_match_1x2') }} raw

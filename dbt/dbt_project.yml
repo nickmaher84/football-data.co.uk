@@ -50,8 +50,8 @@ models:
       materialized: view
       tags: [raw]
     staging:
-      materialized: table
+      materialized: ephemeral
       tags: [staging]
     datamarts:
-      materialized: view
+      materialized: table
       tags: [datamart]

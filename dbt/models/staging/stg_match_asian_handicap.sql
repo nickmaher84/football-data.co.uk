@@ -1,20 +1,21 @@
 SELECT
-  TO_DATE(raw.date, '%d/%m/%Y')                    as date,
-  CAST(raw.bookmaker as varchar(5))                as bookmaker,
-  CAST(raw.home_team as varchar(100))              as home_team,
-  CAST(NULLIF(raw.home_odds, '') as decimal(5,2))  as home_odds,
-  CAST(NULLIF(raw.away_odds, '') as decimal(5,2))  as away_odds,
-  CAST(raw.away_team as varchar(100))              as away_team,
+  raw.source::varchar(20)                       as source,
+  TO_DATE(raw.date, 'DD/MM/YY')                 as date,
+  raw.bookmaker::varchar(5)                     as bookmaker,
   CASE
     WHEN raw.handicap like '%,%'
-    THEN (CAST(SPLIT_PART(raw.handicap, ',', -1) as decimal(2,1))
-         +CAST(SPLIT_PART(raw.handicap, ',', +1) as decimal(2,1))
+    THEN (SPLIT_PART(raw.handicap, ',', 1)::decimal(2,1)
+         +SPLIT_PART(raw.handicap, ',', 2)::decimal(2,1)
          ) * 0.5
-    ELSE CAST(NULLIF(raw.handicap, '') as decimal(6,3))
-  END                                              as handicap,
-  CAST(
-    CAST(NULLIF(REPLACE(REPLACE(raw.bb_bookmakers, CHAR(194), ''), CHAR(160), ''), '') as float) as smallint
-  )                                                as bb_bookmakers,
+    ELSE NULLIF(raw.handicap, '')::decimal(6,3)
+  END                                           as handicap,
+  raw.home_team::varchar(100)                   as home_team,
+  NULLIF(raw.home_odds, '')::decimal(5,2)       as home_odds,
+  NULLIF(raw.away_odds, '')::decimal(5,2)       as away_odds,
+  raw.away_team::varchar(100)                   as away_team,
+  NULLIF(
+    REPLACE(REPLACE(raw.bb_bookmakers, CHR(194), ''), CHR(160), '')
+  , '')::float::smallint                        as bb_bookmakers,
   raw.url
 FROM
   {{ ref('raw_match_asian_handicap') }} raw
