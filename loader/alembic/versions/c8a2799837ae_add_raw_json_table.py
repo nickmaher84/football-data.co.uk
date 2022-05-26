@@ -22,6 +22,7 @@ def upgrade():
         sa.Column('url', sa.String(length=100), nullable=False),
         sa.Column('json', sa.JSON(), nullable=False),
         sa.Column('loaded_at', sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(['url'], ['football-data.season.url'], ),
         schema='football-data'
     )
     op.create_index('ix_raw_url', 'raw', ['url'], unique=False, schema='football-data')

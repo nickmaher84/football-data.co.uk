@@ -21,31 +21,35 @@ def upgrade():
     op.create_table(
         'country',
         sa.Column('country_code', sa.String(length=3), nullable=False),
-        sa.Column('country', sa.String(length=20), nullable=False),
+        sa.Column('country_name', sa.String(length=20), nullable=False),
         sa.Column('url', sa.String(length=100), nullable=False),
         sa.PrimaryKeyConstraint('country_code'),
-        sa.UniqueConstraint('country'),
+        sa.UniqueConstraint('country_name'),
         sa.UniqueConstraint('url'),
         schema='football-data'
     )
     op.create_table(
         'league',
         sa.Column('division', sa.String(length=3), nullable=False),
-        sa.Column('league', sa.String(length=100), nullable=False),
+        sa.Column('league_name', sa.String(length=100), nullable=False),
         sa.Column('country_code', sa.String(length=3), nullable=False),
         sa.PrimaryKeyConstraint('division'),
+        sa.ForeignKeyConstraint(['country_code'], ['football-data.country.country_code'], ),
         schema='football-data'
     )
-    op.create_index('uq_league', 'league', ['country_code', 'league'], unique=True, schema='football-data')
+    op.create_index('uq_league', 'league', ['country_code', 'league_name'], unique=True, schema='football-data')
     op.create_table(
         'season',
         sa.Column('url', sa.String(length=100), nullable=False),
         sa.Column('division', sa.String(length=3), nullable=False),
-        sa.Column('season', sa.String(length=20), nullable=False),
+        sa.Column('season_name', sa.String(length=20), nullable=False),
+        sa.Column('last_modified', sa.DateTime(), nullable=True),
+        sa.Column('last_loaded', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('url'),
+        sa.ForeignKeyConstraint(['division'], ['football-data.league.division'], ),
         schema='football-data'
     )
-    op.create_index('uq_season', 'season', ['division', 'season'], unique=True, schema='football-data')
+    op.create_index('uq_season', 'season', ['division', 'season_name'], unique=True, schema='football-data')
     # ### end Alembic commands ###
 
 
