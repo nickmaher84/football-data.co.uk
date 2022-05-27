@@ -35,18 +35,20 @@ SELECT
   CASE
     WHEN goals_for > goals_against
     THEN 'W'
+    WHEN goals_for = goals_against
+    THEN 'D'
     WHEN goals_for < goals_against
     THEN 'L'
-    ELSE 'D'
   END              as result,
   ht_goals_for,
   ht_goals_against,
   CASE
     WHEN ht_goals_for > ht_goals_against
     THEN 'W'
+    WHEN ht_goals_for = ht_goals_against
+    THEN 'D'
     WHEN ht_goals_for < ht_goals_against
     THEN 'L'
-    ELSE 'D'
   END              as ht_result,
   referee,
   attendance

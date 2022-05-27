@@ -7,13 +7,13 @@ SELECT
   TO_TIMESTAMP(raw.time, 'HH24:mi')::time       as time,
   TRIM(raw.home_team)::varchar(100)             as home_team,
   NULLIF(raw.home_goals, '')::smallint          as home_goals,
-  raw.result::char                              as result,
+  NULLIF(raw.result, '')::char                  as result,
   NULLIF(raw.away_goals, '')::smallint          as away_goals,
   TRIM(raw.away_team)::varchar(100)             as away_team,
   NULLIF(raw.ht_home_goals, '')::smallint       as ht_home_goals,
-  raw.ht_result::char                           as ht_result,
+  NULLIF(raw.ht_result, '')::char               as ht_result,
   NULLIF(raw.ht_away_goals, '')::smallint       as ht_away_goals,
-  TRIM(raw.referee)::varchar(100)               as referee,
+  NULLIF(TRIM(raw.referee), '')::varchar(100)   as referee,
   NULLIF(NULLIF(raw.attendance, 'NA'), '')::int as attendance,
   raw.url
 FROM
