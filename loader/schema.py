@@ -1,7 +1,12 @@
-from database import metadata
-from sqlalchemy import Table, Column, Index, ForeignKey
+from sqlalchemy import MetaData, Table, Column, Index, ForeignKey, engine_from_config
 from sqlalchemy.types import String, DateTime, JSON
+from configparser import ConfigParser
 
+config = ConfigParser()
+config.read('alembic.ini')
+
+engine = engine_from_config(config['alembic'])
+metadata = MetaData(schema='football-data', bind=engine)
 
 countries = Table(
     'country', metadata,
@@ -44,4 +49,4 @@ def deploy_schema(overwrite=False):
 
 
 if __name__ == '__main__':
-    deploy_schema(True)
+    deploy_schema()
