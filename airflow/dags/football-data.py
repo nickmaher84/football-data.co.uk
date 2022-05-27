@@ -5,7 +5,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook as Hook
 from sqlalchemy import MetaData, Table
 from pendulum import yesterday
 
-from ProjectHanoi.FootballData.loader import main
+from project_hanoi.football_data.load import loader
 
 
 with DAG(
@@ -24,7 +24,7 @@ with DAG(
 
     load_countries = PythonOperator(
         task_id='load_countries',
-        python_callable=main.load_countries,
+        python_callable=loader.load_countries,
         op_kwargs={
             'engine': engine,
         },
@@ -38,7 +38,7 @@ with DAG(
         with TaskGroup(group_id=country['country_name']) as load_by_country:
             load_leagues = PythonOperator(
                 task_id='load_leagues',
-                python_callable=main.load_leagues_for_country,
+                python_callable=loader.load_leagues_for_country,
                 op_kwargs={
                     'engine': engine,
                     'country': country,
@@ -47,7 +47,7 @@ with DAG(
 
             load_seasons = PythonOperator(
                 task_id='load_seasons',
-                python_callable=main.load_seasons_for_country,
+                python_callable=loader.load_seasons_for_country,
                 op_kwargs={
                     'engine': engine,
                     'country': country,
@@ -64,7 +64,7 @@ with DAG(
                 with TaskGroup(group_id=league['league_name'].replace(' ', '_')+'-'+league['country_code']) as load_by_league:
                     update_seasons = PythonOperator(
                         task_id='update_seasons',
-                        python_callable=main.update_seasons_for_league,
+                        python_callable=loader.update_seasons_for_league,
                         op_kwargs={
                             'engine': engine,
                             'league': league,
@@ -73,7 +73,7 @@ with DAG(
 
                     load_updated_files = PythonOperator(
                         task_id='load_updated_files',
-                        python_callable=main.load_updated_files_for_league,
+                        python_callable=loader.load_updated_files_for_league,
                         op_kwargs={
                             'engine': engine,
                             'league': league,

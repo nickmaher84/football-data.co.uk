@@ -1,6 +1,6 @@
 from dateutil.parser import parse
 from sqlalchemy import MetaData, Table
-from ProjectHanoi.FootballData.loader import scraper
+from project_hanoi.football_data.load import scraper
 
 
 def load_countries(engine):

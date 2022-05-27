@@ -3,7 +3,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook as Hook
 from pendulum import yesterday
 
-from ProjectHanoi.FootballData.loader import main
+from ProjectHanoi.FootballData.load import loader
 
 
 with DAG(
@@ -20,7 +20,7 @@ with DAG(
 
     load_countries = PythonOperator(
         task_id='load_countries',
-        python_callable=main.load_countries,
+        python_callable=loader.load_countries,
         op_kwargs={
             'engine': engine,
         },
@@ -28,7 +28,7 @@ with DAG(
 
     load_leagues = PythonOperator(
         task_id='load_leagues',
-        python_callable=main.load_leagues,
+        python_callable=loader.load_leagues,
         op_kwargs={
             'engine': engine,
         },
@@ -36,7 +36,7 @@ with DAG(
 
     load_seasons = PythonOperator(
         task_id='load_seasons',
-        python_callable=main.load_seasons,
+        python_callable=loader.load_seasons,
         op_kwargs={
             'engine': engine,
         },
@@ -44,7 +44,7 @@ with DAG(
 
     update_seasons = PythonOperator(
         task_id='update_seasons',
-        python_callable=main.update_seasons,
+        python_callable=loader.update_seasons,
         op_kwargs={
             'engine': engine,
         },
@@ -52,7 +52,7 @@ with DAG(
 
     load_files = PythonOperator(
         task_id='load_files',
-        python_callable=main.load_modified_files,
+        python_callable=loader.load_modified_files,
         op_kwargs={
             'engine': engine,
         },
