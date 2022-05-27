@@ -9,7 +9,7 @@ from ProjectHanoi.FootballData.loader import main
 with DAG(
     dag_id='Football-Data.co.uk-Lite',
     description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
-    schedule_interval='@daily',
+    schedule_interval='@once',
     start_date=yesterday('Europe/London'),
     catchup=False,
     tags=['football','football-data.co.uk'],
