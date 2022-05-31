@@ -1,16 +1,16 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook as Hook
-from pendulum import yesterday
+from pendulum import datetime
 
-from ProjectHanoi.FootballData.load import loader
+from project_hanoi.football_data.load import loader
 
 
 with DAG(
-    dag_id='Football-Data.co.uk-Lite',
+    dag_id='Football-Data.co.uk-simple',
     description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
-    schedule_interval='@once',
-    start_date=yesterday('Europe/London'),
+    schedule_interval='@monthly',
+    start_date=datetime(2022, 5, 1, tz='Europe/London'),
     catchup=False,
     tags=['football','football-data.co.uk'],
 ) as dag:
