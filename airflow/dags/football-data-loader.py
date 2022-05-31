@@ -2,23 +2,21 @@ from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook as Hook
-from airflow.models import Variable
 
 from sqlalchemy import MetaData, Table
-from pendulum import datetime
+from pendulum import yesterday
 
 from project_hanoi.football_data.load import loader
-from project_hanoi.football_data.dbt.dag_parser import DbtDagParser
 
 
 with DAG(
-    dag_id='football-data.co.uk',
-    description='Download latest data from Joseph Buchdal''s football-data.co.uk website and run models',
-    schedule_interval='@daily',
-    start_date=datetime(2022, 6, 1, tz='Europe/London'),
+    dag_id='football-data.co.uk-file_loader',
+    description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
+    schedule_interval=None,
+    start_date=yesterday('Europe/London'),
     catchup=False,
     concurrency=2,
-    tags=['football','football-data.co.uk'],
+    tags=['football','football-data.co.uk','loader'],
 ) as dag:
 
     hook = Hook('football_db')
@@ -88,16 +86,3 @@ with DAG(
                         load_seasons >> load_by_league
 
     load_countries >> load_by_country
-
-    dag_parser = DbtDagParser(
-        dbt_project_dir=Variable.get("DBT_FOOTBALL_DATA_PROJECT_DIR"),
-        dbt_profiles_dir=Variable.get("DBT_PROFILES_DIR"),
-        dbt_target='dev',
-        dag=dag,
-    )
-
-    dbt_compile_task = dag_parser.get_dbt_compile_task()
-    dbt_run_group = dag_parser.get_dbt_run_group()
-    dbt_test_group = dag_parser.get_dbt_test_group()
-
-    [dbt_compile_task, load_by_country] >> dbt_run_group >> dbt_test_group
