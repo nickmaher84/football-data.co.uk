@@ -65,6 +65,7 @@ def load_leagues_for_country(engine, country):
                     country_code=league['country'],
                 )
             )
+    print()
 
 
 def load_leagues(engine):
@@ -111,6 +112,7 @@ def load_seasons_for_country(engine, country):
                     season_name=season['season'],
                 )
             )
+    print()
 
 
 def load_seasons(engine):
@@ -128,7 +130,7 @@ def update_seasons_for_league(engine, league):
     metadata = MetaData(schema='football-data', bind=engine)
     seasons = Table('season', metadata, autoload_with=engine)
 
-    print('Updating last modified dates for {league}...'.format(league=league))
+    print('Updating last modified dates for {league}...'.format(league=league['league_name']))
     results = engine.execute(
         seasons.select().where(
             seasons.c.division == league['division']
@@ -146,6 +148,7 @@ def update_seasons_for_league(engine, league):
                 last_modified=parse(last_modified)
             )
         )
+    print()
 
 
 def update_seasons(engine):
