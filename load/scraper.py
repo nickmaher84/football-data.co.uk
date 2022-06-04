@@ -4,6 +4,7 @@ from re import compile
 from urllib.parse import urljoin
 from datetime import datetime
 from csv import DictReader
+import os
 
 
 def countries(download_flags=False):
@@ -100,7 +101,10 @@ def file(url):
 
 
 def country_code(name):
-    with open('data/fifa_country_codes.csv') as f:
+    current_dir = os.path.dirname(__file__)
+    filepath = os.path.join(current_dir, 'data/fifa_country_codes.csv')
+
+    with open(filepath) as f:
         reader = DictReader(f)
 
         for row in reader:
@@ -114,7 +118,10 @@ def download_image(url):
     response = requests.get(url)
     filename = response.url.replace('http://livescore.football-data.co.uk/', '')
 
-    with open(filename, 'wb') as f:
+    current_dir = os.path.dirname(__file__)
+    filepath = os.path.join(current_dir, filename)
+
+    with open(filepath, 'wb') as f:
         f.write(response.content)
 
     return filename
