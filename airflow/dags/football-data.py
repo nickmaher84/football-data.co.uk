@@ -18,6 +18,10 @@ with DAG(
     start_date=datetime(2022, 6, 1, tz='Europe/London'),
     catchup=False,
     concurrency=2,
+    default_args={
+        'retries': 3,
+        'retry_exponential_backoff': True,
+    },
     tags=['football','football-data.co.uk'],
 ) as dag:
 
