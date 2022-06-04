@@ -9,7 +9,7 @@ from project_hanoi.football_data.load import loader
 
 
 with DAG(
-    dag_id='Football-Data.co.uk-simple',
+    dag_id='football-data.co.uk-simple',
     description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
     schedule_interval='@monthly',
     start_date=datetime(2022, 5, 1, tz='Europe/London'),
@@ -63,6 +63,22 @@ with DAG(
     dbt_profiles_dir = Variable.get("DBT_PROFILES_DIR")
     dbt_project_dir = Variable.get("DBT_FOOTBALL_DATA_PROJECT_DIR")
 
+    make_seeds = BashOperator(
+        task_id='dbt_seed',
+        bash_command=(
+            f'dbt seed --target dev '
+            f'--profiles-dir {dbt_profiles_dir} '
+            f'--project-dir {dbt_project_dir}'
+        ),
+        env={
+            'DBT_USER': '{{ conn.football_db.login }}',
+            'DBT_ENV_SECRET_PASSWORD': '{{ conn.football_db.password }}',
+            'DBT_HOST': '{{ conn.football_db.host }}',
+            'DBT_SCHEMA': '{{ conn.football_db.schema }}',
+            'DBT_PORT': '{{ conn.football_db.port }}',
+        },
+    )
+
     run_models = BashOperator(
         task_id='dbt_run',
         bash_command=(
@@ -79,4 +95,20 @@ with DAG(
         },
     )
 
-    load_countries >> load_leagues >> load_seasons >> update_seasons >> load_files >> run_models
+    test_models = BashOperator(
+        task_id='dbt_test',
+        bash_command=(
+            f'dbt test --target dev '
+            f'--profiles-dir {dbt_profiles_dir} '
+            f'--project-dir {dbt_project_dir}'
+        ),
+        env={
+            'DBT_USER': '{{ conn.football_db.login }}',
+            'DBT_ENV_SECRET_PASSWORD': '{{ conn.football_db.password }}',
+            'DBT_HOST': '{{ conn.football_db.host }}',
+            'DBT_SCHEMA': '{{ conn.football_db.schema }}',
+            'DBT_PORT': '{{ conn.football_db.port }}',
+        },
+    )
+
+    load_countries >> load_leagues >> load_seasons >> update_seasons >> load_files >> make_seeds >> run_models >> test_models
