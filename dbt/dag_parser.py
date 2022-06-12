@@ -35,12 +35,10 @@ class DbtDagParser:
         self.dbt_target = dbt_target
         self.dbt_tag = dbt_tag
 
-        self.dbt_compile_task = None
         self.dbt_run_group = TaskGroup(dbt_run_group_name)
         self.dbt_test_group = TaskGroup(dbt_test_group_name)
 
         # Parse the manifest and populate the two task groups
-        self.make_dbt_compile_task()
         self.make_dbt_task_groups()
 
     def load_dbt_manifest(self):
@@ -53,14 +51,16 @@ class DbtDagParser:
             file_content = json.load(f)
         return file_content
 
-    def make_dbt_compile_task(self):
+    def make_dbt_single_task(self, dbt_verb):
         """
-        Returns a BashOperator task to run the dbt seed command.
+        Returns a BashOperator task to run a dbt command.
+        Args:
+            dbt_verb: 'compile', 'seed', 'run' or 'test'
         """
-        dbt_task = BashOperator(
-            task_id='dbt_compile',
+        return BashOperator(
+            task_id=f'dbt_{dbt_verb}',
             bash_command=(
-                f'dbt compile --target {self.dbt_target} '
+                f'dbt {dbt_verb} --target {self.dbt_target} '
                 f'--profiles-dir {self.dbt_profiles_dir} '
                 f'--project-dir {self.dbt_project_dir}'
             ),
@@ -74,7 +74,29 @@ class DbtDagParser:
             dag=self.dag,
         )
 
-        self.dbt_compile_task = dbt_task
+    def make_dbt_compile_task(self):
+        """
+        Returns a BashOperator task to run the dbt compile command.
+        """
+        return self.make_dbt_single_task('compile')
+
+    def make_dbt_seed_task(self):
+        """
+        Returns a BashOperator task to run the dbt compile command.
+        """
+        return self.make_dbt_single_task('seed')
+
+    def make_dbt_run_task(self):
+        """
+        Returns a BashOperator task to run the dbt run command.
+        """
+        return self.make_dbt_single_task('run')
+
+    def make_dbt_test_task(self):
+        """
+        Returns a BashOperator task to run the dbt run command.
+        """
+        return self.make_dbt_single_task('test')
 
     def make_dbt_task(self, node_name, dbt_verb):
         """
@@ -109,6 +131,7 @@ class DbtDagParser:
                 'DBT_SCHEMA': '{{ conn.football_db.schema }}',
                 'DBT_PORT': '{{ conn.football_db.port }}',
             },
+            pool_slots=4,
             dag=self.dag,
         )
         # Keeping the log output, it's convenient to see when testing the python code outside of Airflow
@@ -159,7 +182,14 @@ class DbtDagParser:
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task with dbt compile node.
         """
-        return self.dbt_compile_task
+        return self.make_dbt_compile_task()
+
+    def get_dbt_seed_task(self):
+        """
+        Getter method to retrieve the previously constructed dbt tasks.
+        Returns: An Airflow task with dbt compile node.
+        """
+        return self.make_dbt_seed_task()
 
     def get_dbt_run_group(self):
         """
@@ -168,9 +198,23 @@ class DbtDagParser:
         """
         return self.dbt_run_group
 
+    def get_dbt_run_task(self):
+        """
+        Getter method to retrieve the previously constructed dbt tasks.
+        Returns: An Airflow task group with dbt run nodes.
+        """
+        return self.make_dbt_run_task()
+
     def get_dbt_test_group(self):
         """
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task group with dbt test nodes.
         """
         return self.dbt_test_group
+
+    def get_dbt_test_task(self):
+        """
+        Getter method to retrieve the previously constructed dbt tasks.
+        Returns: An Airflow task group with dbt test nodes.
+        """
+        return self.make_dbt_single_task('test')

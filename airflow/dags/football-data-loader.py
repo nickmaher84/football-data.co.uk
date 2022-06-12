@@ -12,10 +12,14 @@ from project_hanoi.football_data.load import loader
 with DAG(
     dag_id='football-data.co.uk-file_loader',
     description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
-    schedule_interval=None,
+    schedule_interval='@daily',
     start_date=yesterday('Europe/London'),
     catchup=False,
     concurrency=2,
+    default_args={
+        'retries': 3,
+        'retry_exponential_backoff': True,
+    },
     tags=['football','football-data.co.uk','loader'],
 ) as dag:
 

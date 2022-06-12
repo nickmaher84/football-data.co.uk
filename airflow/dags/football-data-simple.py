@@ -11,7 +11,7 @@ from project_hanoi.football_data.load import loader
 with DAG(
     dag_id='football-data.co.uk-simple',
     description='Download latest data from Joseph Buchdal''s football-data.co.uk website',
-    schedule_interval='@monthly',
+    schedule_interval=None,
     start_date=datetime(2022, 5, 1, tz='Europe/London'),
     catchup=False,
     tags=['football','football-data.co.uk'],

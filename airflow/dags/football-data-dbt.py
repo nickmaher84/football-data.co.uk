@@ -11,7 +11,11 @@ with DAG(
     schedule_interval=None,
     start_date=yesterday('Europe/London'),
     catchup=False,
-    concurrency=1,
+    concurrency=2,
+    default_args={
+        'retries': 2,
+        'retry_exponential_backoff': True,
+    },
     tags=['football','football-data.co.uk','dbt'],
 ) as dag:
 
@@ -22,8 +26,8 @@ with DAG(
         dag=dag,
     )
 
-    dbt_compile_task = dag_parser.get_dbt_compile_task()
-    dbt_run_group = dag_parser.get_dbt_run_group()
-    dbt_test_group = dag_parser.get_dbt_test_group()
+    dbt_compile = dag_parser.get_dbt_compile_task()
+    dbt_run = dag_parser.get_dbt_run_group()
+    dbt_test = dag_parser.get_dbt_test_group()
 
-    dbt_compile_task >> dbt_run_group >> dbt_test_group
+    dbt_compile >> dbt_run >> dbt_test
