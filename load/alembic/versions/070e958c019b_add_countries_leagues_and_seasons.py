@@ -23,9 +23,9 @@ def upgrade():
         sa.Column('country_code', sa.String(length=3), nullable=False),
         sa.Column('country_name', sa.String(length=20), nullable=False),
         sa.Column('url', sa.String(length=100), nullable=False),
-        sa.PrimaryKeyConstraint('country_code'),
-        sa.UniqueConstraint('country_name'),
-        sa.UniqueConstraint('url'),
+        sa.PrimaryKeyConstraint('country_code', name='pk_country'),
+        sa.UniqueConstraint('country_name', name='uq_country_name'),
+        sa.UniqueConstraint('url', name='uq_country_url'),
         schema='football-data'
     )
     op.create_table(
@@ -33,8 +33,8 @@ def upgrade():
         sa.Column('division', sa.String(length=3), nullable=False),
         sa.Column('league_name', sa.String(length=100), nullable=False),
         sa.Column('country_code', sa.String(length=3), nullable=False),
-        sa.PrimaryKeyConstraint('division'),
-        sa.ForeignKeyConstraint(['country_code'], ['football-data.country.country_code'], ),
+        sa.PrimaryKeyConstraint('division', name='pk_league'),
+        sa.ForeignKeyConstraint(['country_code'], ['football-data.country.country_code'], name='fk_league_country'),
         schema='football-data'
     )
     op.create_index('uq_league', 'league', ['country_code', 'league_name'], unique=True, schema='football-data')
@@ -45,8 +45,8 @@ def upgrade():
         sa.Column('season_name', sa.String(length=20), nullable=False),
         sa.Column('last_modified', sa.DateTime(), nullable=True),
         sa.Column('last_loaded', sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint('url'),
-        sa.ForeignKeyConstraint(['division'], ['football-data.league.division'], ),
+        sa.PrimaryKeyConstraint('url', name='pk_season'),
+        sa.ForeignKeyConstraint(['division'], ['football-data.league.division'], name='fk_season_league'),
         schema='football-data'
     )
     op.create_index('uq_season', 'season', ['division', 'season_name'], unique=True, schema='football-data')
