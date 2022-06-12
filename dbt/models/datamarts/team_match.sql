@@ -17,7 +17,7 @@ staging AS (
     UNNEST(ARRAY[away_goals,home_goals])       as goals_against,
     UNNEST(ARRAY[ht_home_goals,ht_away_goals]) as ht_goals_for,
     UNNEST(ARRAY[ht_away_goals,ht_home_goals]) as ht_goals_against,
-    referee,
+    referee_id,
     attendance
   FROM
     {{ ref('match') }} m
@@ -50,7 +50,7 @@ SELECT
     WHEN ht_goals_for < ht_goals_against
     THEN 'L'
   END              as ht_result,
-  referee,
+  referee_id,
   attendance
 FROM
   staging

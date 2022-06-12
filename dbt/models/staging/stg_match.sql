@@ -13,7 +13,9 @@ SELECT
   NULLIF(raw.ht_home_goals, '')::smallint       as ht_home_goals,
   NULLIF(raw.ht_result, '')::char               as ht_result,
   NULLIF(raw.ht_away_goals, '')::smallint       as ht_away_goals,
-  NULLIF(TRIM(raw.referee), '')::varchar(100)   as referee,
+  NULLIF(TRIM(
+      TRIM(raw.referee, chr(160))
+  ), '')::varchar(100)                          as referee,
   NULLIF(NULLIF(raw.attendance, 'NA'), '')::int as attendance,
   raw.url
 FROM

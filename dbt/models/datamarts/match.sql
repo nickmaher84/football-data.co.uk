@@ -1,14 +1,11 @@
 {{
   config(
-    pre_hook=[
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_pk',
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_uq_home',
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_uq_away',
-    ],
-    post_hook=[
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_pk primary key (id)',
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_uq_home unique (date, home_team_id)',
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_uq_away unique (date, away_team_id)',
+    unique_key = 'id',
+    indexes=[
+      {'columns': ['id'], 'unique': True},
+      {'columns': ['date', 'home_team_id'], 'unique': True},
+      {'columns': ['date', 'away_team_id'], 'unique': True},
+      {'columns': ['last_modified']},
     ]
   )
 }}
@@ -38,8 +35,9 @@ staging AS (
     stg.ht_home_goals                           as ht_home_goals,
     stg.ht_result                               as ht_result,
     stg.ht_away_goals                           as ht_away_goals,
-    stg.referee                                 as referee,
-    stg.attendance                              as attendance
+    stg.referee                                 as referee_name,
+    stg.attendance                              as attendance,
+    season.last_modified
   FROM
     {{ ref('stg_match') }} stg
   JOIN
@@ -48,6 +46,10 @@ staging AS (
     {{ source('football-data', 'league') }} league USING (division)
   JOIN
     {{ source('football-data', 'country') }} country USING (country_code)
+{% if is_incremental() %}
+  WHERE
+    season.last_modified > (select max(this.last_modified) from {{ this }} this)
+{% endif %}
 )
 SELECT
   {{ dbt_utils.surrogate_key(
@@ -74,7 +76,11 @@ SELECT
   ht_home_goals,
   ht_result,
   ht_away_goals,
-  referee,
-  attendance
+  CASE referee_name
+    WHEN NOT NULL
+    THEN {{ dbt_utils.surrogate_key(['source', 'referee_name', 'country']) }}
+  END                                    as referee_id,
+  attendance,
+  last_modified
 FROM
   staging

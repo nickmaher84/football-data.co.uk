@@ -1,12 +1,10 @@
 {{
   config(
-    pre_hook=[
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_pk',
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_uq',
-    ],
-    post_hook=[
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_pk primary key (id)',
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_uq unique (country, league, season)',
+    unique_key = 'id',
+    indexes=[
+      {'columns': ['id'], 'unique': True},
+      {'columns': ['country', 'league', 'season'], 'unique': True},
+      {'columns': ['last_modified']},
     ]
   )
 }}
@@ -25,7 +23,8 @@ staging AS (
     COALESCE(
       stg.season,
       replace(season.season_name, 'Season ', '')
-    )                                           as season
+    )                                           as season,
+    season.last_modified
   FROM
     {{ ref('stg_match') }} stg
   JOIN
@@ -35,13 +34,18 @@ staging AS (
   JOIN
     {{ source('football-data', 'country') }} country USING (country_code)
 )
-SELECT DISTINCT
+SELECT
   {{ dbt_utils.surrogate_key(
       ['source', 'country', 'league', 'season']
     )
   }}                                          as id,
   country,
   league,
-  season
+  season,
+  last_modified
 FROM
   staging
+{% if is_incremental() %}
+WHERE
+  last_modified > (select max(this.last_modified) from {{ this }} this)
+{% endif %}

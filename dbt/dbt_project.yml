@@ -53,5 +53,5 @@ models:
       materialized: ephemeral
       tags: [staging]
     datamarts:
-      materialized: table
+      materialized: incremental
       tags: [datamart]

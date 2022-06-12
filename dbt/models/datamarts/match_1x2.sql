@@ -1,14 +1,18 @@
 {{
   config(
-    pre_hook=[
-      'alter table if exists "{{ this.schema }}"."{{ this.name }}" drop constraint if exists {{ this.name }}_pk',
-    ],
-    post_hook=[
-      'alter table "{{ this.schema }}"."{{ this.name }}" add constraint {{ this.name }}_pk primary key (match_id, bookmaker_code)',
+    unique_key = 'id',
+    indexes=[
+      {'columns': ['id'], 'unique': True},
+      {'columns': ['match_id', 'bookmaker_code'], 'unique': True},
+      {'columns': ['last_modified']},
     ]
   )
 }}
 SELECT
+  {{ dbt_utils.surrogate_key(
+      ['source', 'date', 'home_team', 'bookmaker']
+    )
+  }}                                   as id,
   {{ dbt_utils.surrogate_key(
       ['source', 'date', 'home_team']
     )
@@ -40,6 +44,13 @@ SELECT
     1/NULLIF(stg.draw_odds, 0),
     1/NULLIF(stg.away_odds, 0)
   )                                    as favourite_implied_probability,
-  stg.bb_bookmakers                    as bb_bookmakers
+  stg.bb_bookmakers                    as bb_bookmakers,
+  season.last_modified
 FROM
   {{ ref('stg_match_1x2') }} stg
+JOIN
+  {{ source('football-data', 'season') }} season USING (url)
+{% if is_incremental() %}
+WHERE
+  season.last_modified > (select max(this.last_modified) from {{ this }} this)
+{% endif %}
