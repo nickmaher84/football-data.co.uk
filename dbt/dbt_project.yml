@@ -56,3 +56,6 @@ models:
     reporting:
       materialized: table
       tags: [reporting]
+    analysis:
+      materialized: view
+      tags: [analysis]
