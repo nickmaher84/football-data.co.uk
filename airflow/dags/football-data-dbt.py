@@ -13,6 +13,10 @@ with DAG(
     start_date=datetime(2022, 6, 1, tz='Europe/London'),
     catchup=False,
     concurrency=1,
+    default_args={
+        'retries': 2,
+        'retry_exponential_backoff': True,
+    },
     tags=['football','football-data.co.uk','dbt'],
 ) as dag:
 
@@ -25,8 +29,8 @@ with DAG(
 
     trigger = ExternalTaskSensor(task_id='trigger', external_dag_id='football-data.co.uk')
 
-    dbt_compile = dag_parser.get_dbt_compile_task()
-    dbt_run = dag_parser.get_dbt_run_group()
-    dbt_test = dag_parser.get_dbt_test_group()
+    dbt_compile = dag_parser.get_dbt_compile()
+    dbt_run = dag_parser.get_dbt_run(expanded=True)
+    dbt_test = dag_parser.get_dbt_test()
 
     trigger >> dbt_compile >> dbt_run >> dbt_test

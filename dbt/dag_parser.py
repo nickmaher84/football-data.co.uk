@@ -9,13 +9,10 @@ class DbtDagParser:
     """
     A utility class that parses out a dbt project and creates the respective task groups
     :param dag: The Airflow DAG
-    :param dbt_global_cli_flags: Any global flags for the dbt CLI
     :param dbt_project_dir: The directory containing the dbt_project.yml
     :param dbt_profiles_dir: The directory containing the profiles.yml
     :param dbt_target: The dbt target profile (e.g. dev, prod)
     :param dbt_tag: Limit dbt models to this tag if specified.
-    :param dbt_run_group_name: Optional override for the task group name.
-    :param dbt_test_group_name: Optional override for the task group name.
     """
 
     def __init__(
@@ -25,8 +22,6 @@ class DbtDagParser:
         dbt_profiles_dir=None,
         dbt_target=None,
         dbt_tag=None,
-        dbt_run_group_name='dbt_run',
-        dbt_test_group_name='dbt_test',
     ):
 
         self.dag = dag
@@ -35,23 +30,7 @@ class DbtDagParser:
         self.dbt_target = dbt_target
         self.dbt_tag = dbt_tag
 
-        self.dbt_run_group = TaskGroup(dbt_run_group_name)
-        self.dbt_test_group = TaskGroup(dbt_test_group_name)
-
-        # Parse the manifest and populate the two task groups
-        self.make_dbt_task_groups()
-
-    def load_dbt_manifest(self):
-        """
-        Helper function to load the dbt manifest file.
-        Returns: A JSON object containing the dbt manifest content.
-        """
-        manifest_path = os.path.join(self.dbt_project_dir, 'target/manifest.json')
-        with open(manifest_path) as f:
-            file_content = json.load(f)
-        return file_content
-
-    def make_dbt_single_task(self, dbt_verb):
+    def make_dbt_task(self, dbt_verb):
         """
         Returns a BashOperator task to run a dbt command.
         Args:
@@ -74,46 +53,20 @@ class DbtDagParser:
             dag=self.dag,
         )
 
-    def make_dbt_compile_task(self):
-        """
-        Returns a BashOperator task to run the dbt compile command.
-        """
-        return self.make_dbt_single_task('compile')
-
-    def make_dbt_seed_task(self):
-        """
-        Returns a BashOperator task to run the dbt compile command.
-        """
-        return self.make_dbt_single_task('seed')
-
-    def make_dbt_run_task(self):
-        """
-        Returns a BashOperator task to run the dbt run command.
-        """
-        return self.make_dbt_single_task('run')
-
-    def make_dbt_test_task(self):
-        """
-        Returns a BashOperator task to run the dbt run command.
-        """
-        return self.make_dbt_single_task('test')
-
-    def make_dbt_task(self, node_name, dbt_verb):
+    def make_dbt_model_task(self, dbt_verb, node_name, task_group):
         """
         Takes the manifest JSON content and returns a BashOperator task
         to run a dbt command.
         Args:
-            node_name: The name of the node
             dbt_verb: 'run' or 'test'
+            node_name: The name of the node
+            task_group: The TaskGroup the task should be added to
         Returns: A BashOperator task that runs the respective dbt command
         """
 
         model_name = node_name.split('.')[-1]
         if dbt_verb == 'test':
             node_name = node_name.replace('model', 'test')  # Just a cosmetic renaming of the task
-            task_group = self.dbt_test_group
-        else:
-            task_group = self.dbt_run_group
 
         dbt_task = BashOperator(
             task_id=node_name,
@@ -138,11 +91,24 @@ class DbtDagParser:
         logging.info('Created task: %s', node_name)
         return dbt_task
 
-    def make_dbt_task_groups(self):
+    def load_dbt_manifest(self):
         """
-        Parse out a JSON file and populates the task groups with dbt tasks
-        Returns: None
+        Helper function to load the dbt manifest file.
+        Returns: A JSON object containing the dbt manifest content.
         """
+        manifest_path = os.path.join(self.dbt_project_dir, 'target/manifest.json')
+        with open(manifest_path) as f:
+            file_content = json.load(f)
+        return file_content
+
+    def make_dbt_task_group(self, dbt_verb):
+        """
+        Parse out a JSON file and populates a task group with dbt tasks
+        Returns: TaskGroup
+        """
+
+        task_group = TaskGroup(group_id=f'dbt_{dbt_verb}')
+
         manifest_json = self.load_dbt_manifest()
         dbt_tasks = {}
 
@@ -153,18 +119,14 @@ class DbtDagParser:
                 # Only use nodes with the right tag, if tag is specified
                 if (self.dbt_tag and self.dbt_tag in tags) or not self.dbt_tag:
                     # Make the run nodes
-                    dbt_tasks[node_name] = self.make_dbt_task(node_name, 'run')
-
-                    # Make the test nodes
-                    node_test = node_name.replace('model', 'test')
-                    dbt_tasks[node_test] = self.make_dbt_task(node_name, 'test')
+                    dbt_tasks[node_name] = self.make_dbt_model_task('run', node_name, task_group)
 
             elif node_name.split('.')[0] == 'seed':
                 tags = manifest_json['nodes'][node_name]['tags']
                 # Only use nodes with the right tag, if tag is specified
                 if (self.dbt_tag and self.dbt_tag in tags) or not self.dbt_tag:
                     # Make the run nodes
-                    dbt_tasks[node_name] = self.make_dbt_task(node_name, 'seed')
+                    dbt_tasks[node_name] = self.make_dbt_model_task('seed', node_name, task_group)
 
         # Add upstream and downstream dependencies for each run task
         for node_name in manifest_json['nodes'].keys():
@@ -177,44 +139,40 @@ class DbtDagParser:
                         if upstream_node_type in ('model', 'seed'):
                             dbt_tasks[upstream_node] >> dbt_tasks[node_name]
 
-    def get_dbt_compile_task(self):
+        return task_group
+
+    def get_dbt_compile(self):
         """
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task with dbt compile node.
         """
-        return self.make_dbt_compile_task()
+        return self.make_dbt_task('compile')
 
-    def get_dbt_seed_task(self):
+    def get_dbt_seed(self):
         """
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task with dbt compile node.
         """
-        return self.make_dbt_seed_task()
+        return self.make_dbt_task('seed')
 
-    def get_dbt_run_group(self):
+    def get_dbt_run(self, expanded=False):
         """
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task group with dbt run nodes.
         """
-        return self.dbt_run_group
+        if expanded:
+            return self.make_dbt_task_group('run')
 
-    def get_dbt_run_task(self):
-        """
-        Getter method to retrieve the previously constructed dbt tasks.
-        Returns: An Airflow task group with dbt run nodes.
-        """
-        return self.make_dbt_run_task()
+        else:
+            return self.make_dbt_task('run')
 
-    def get_dbt_test_group(self):
+    def get_dbt_test(self, expanded=False):
         """
         Getter method to retrieve the previously constructed dbt tasks.
         Returns: An Airflow task group with dbt test nodes.
         """
-        return self.dbt_test_group
+        if expanded:
+            return self.make_dbt_task_group('test')
 
-    def get_dbt_test_task(self):
-        """
-        Getter method to retrieve the previously constructed dbt tasks.
-        Returns: An Airflow task group with dbt test nodes.
-        """
-        return self.make_dbt_single_task('test')
+        else:
+            return self.make_dbt_task('test')
