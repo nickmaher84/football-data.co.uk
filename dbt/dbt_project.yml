@@ -55,3 +55,6 @@ models:
     datamarts:
       materialized: incremental
       tags: [datamart]
+    analysis:
+      materialized: view
+      tags: [analysis]
