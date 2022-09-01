@@ -141,13 +141,14 @@ def update_seasons_for_league(engine, league):
         last_modified = scraper.fetch_last_modified(season['url'])
         print(season['url'], last_modified)
 
-        engine.execute(
-            seasons.update().where(
-                seasons.c.url == season['url']
-            ).values(
-                last_modified=parse(last_modified)
+        if last_modified:
+            engine.execute(
+                seasons.update().where(
+                    seasons.c.url == season['url']
+                ).values(
+                    last_modified=parse(last_modified)
+                )
             )
-        )
     print()
 
 

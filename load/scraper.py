@@ -130,4 +130,4 @@ def download_image(url):
 def fetch_last_modified(url):
     response = requests.head(url)
 
-    return response.headers['last-modified']
+    return response.headers.get('last-modified')
