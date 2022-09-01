@@ -5,3 +5,4 @@ alembic
 BeautifulSoup4
 html5lib
 python-dateutil
+statsmodels
