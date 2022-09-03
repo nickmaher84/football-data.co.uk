@@ -1,2 +1,2 @@
 dbt-postgres==0.21.1
-apache-airflow[postgres]==2.2.5
+apache-airflow[postgres]==2.3.4
