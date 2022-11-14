@@ -1,0 +1,257 @@
+version: 2
+
+models:
+  - name: team
+    columns:
+      - name: id
+      - name: name
+      - name: country
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - name
+            - country
+
+
+  - name: competition
+    columns:
+      - name: id
+      - name: country
+      - name: league
+      - name: season
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - country
+            - league
+            - season
+
+
+  - name: referee
+    columns:
+      - name: id
+      - name: name
+      - name: full_name
+      - name: first_name
+      - name: last_name
+      - name: country
+      - name: matches
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - name
+            - country
+
+
+  - name: match
+    columns:
+      - name: id
+      - name: competition_id
+      - name: home_team_id
+      - name: home_goals
+      - name: result
+      - name: away_goals
+      - name: away_team_id
+      - name: ht_home_goals
+      - name: ht_result
+      - name: ht_away_goals
+      - name: referee_id
+      - name: attendance
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - date
+            - home_team_id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - date
+            - away_team_id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('competition')
+          fk_column_name: competition_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('team')
+          fk_column_name: home_team_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('team')
+          fk_column_name: away_team_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('referee')
+          fk_column_name: referee_id
+          pk_column_name: id
+
+
+  - name: match_1x2
+    columns:
+      - name: id
+      - name: match_id
+      - name: bookmaker_code
+      - name: home_odds
+      - name: draw_odds
+      - name: away_odds
+      - name: home_implied_probability
+      - name: draw_implied_probability
+      - name: away_implied_probability
+      - name: overround
+      - name: favourite
+      - name: favourite_odds
+      - name: favourite_implied_probability
+      - name: bb_bookmakers
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - match_id
+            - bookmaker_code
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('match')
+          fk_column_name: match_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('bookmakers')
+          fk_column_name: bookmaker_code
+          pk_column_name: code
+
+
+  - name: match_over_under
+    columns:
+      - name: id
+      - name: match_id
+      - name: bookmaker_code
+      - name: under_odds
+      - name: over_odds
+      - name: under_implied_probability
+      - name: over_implied_probability
+      - name: overround
+      - name: favourite
+      - name: favourite_odds
+      - name: favourite_implied_probability
+      - name: bb_bookmakers
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - match_id
+            - bookmaker_code
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('match')
+          fk_column_name: match_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('bookmakers')
+          fk_column_name: bookmaker_code
+          pk_column_name: code
+
+
+  - name: match_asian_handicap
+    columns:
+      - name: id
+      - name: match_id
+      - name: bookmaker_code
+      - name: handicap
+      - name: home_odds
+      - name: away_odds
+      - name: home_implied_probability
+      - name: away_implied_probability
+      - name: overround
+      - name: favourite
+      - name: favourite_odds
+      - name: favourite_implied_probability
+      - name: bb_bookmakers
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - match_id
+            - bookmaker_code
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('match')
+          fk_column_name: match_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('bookmakers')
+          fk_column_name: bookmaker_code
+          pk_column_name: code
+
+
+  - name: match_statistic
+    columns:
+      - name: id
+      - name: match_id
+      - name: statistic_code
+      - name: home_stat
+      - name: away_stat
+      - name: last_modified
+
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - id
+
+      - dbt_constraints.unique_key:
+          column_names:
+            - match_id
+            - statistic_code
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('match')
+          fk_column_name: match_id
+          pk_column_name: id
+
+      - dbt_constraints.foreign_key:
+          pk_table_name: ref('statistics')
+          fk_column_name: statistic_code
+          pk_column_name: code
