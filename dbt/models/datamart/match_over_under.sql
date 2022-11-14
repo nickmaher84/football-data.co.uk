@@ -1,13 +1,5 @@
-{{
-    config(
-        unique_key = 'id',
-        indexes=[
-            {'columns': ['id'], 'unique': True},
-            {'columns': ['match_id', 'bookmaker_code'], 'unique': True},
-            {'columns': ['last_modified']},
-        ]
-    )
-}}
+{{ config(indexes=[{'columns': ['last_modified']}], unique_key='id') }}
+
 SELECT
     {{ dbt_utils.surrogate_key(
         ['source', 'date', 'home_team', 'bookmaker']

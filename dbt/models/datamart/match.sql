@@ -1,14 +1,5 @@
-{{
-    config(
-        unique_key = 'id',
-        indexes=[
-            {'columns': ['id'], 'unique': True},
-            {'columns': ['date', 'home_team_id'], 'unique': True},
-            {'columns': ['date', 'away_team_id'], 'unique': True},
-            {'columns': ['last_modified']},
-        ]
-    )
-}}
+{{ config(indexes=[{'columns': ['last_modified']}], unique_key='id') }}
+
 WITH
 staging AS (
     SELECT

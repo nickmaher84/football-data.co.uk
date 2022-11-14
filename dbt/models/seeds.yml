@@ -1,0 +1,14 @@
+version: 2
+
+seeds:
+  - name: statistics
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - code
+
+  - name: bookmakers
+    tests:
+      - dbt_constraints.primary_key:
+          column_names:
+            - code

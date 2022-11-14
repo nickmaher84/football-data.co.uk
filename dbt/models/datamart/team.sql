@@ -1,13 +1,5 @@
-{{
-    config(
-        unique_key = 'id',
-        indexes=[
-            {'columns': ['id'], 'unique': True},
-            {'columns': ['name', 'country'], 'unique': True},
-            {'columns': ['last_modified']},
-        ]
-    )
-}}
+{{ config(indexes=[{'columns': ['last_modified']}], unique_key='id') }}
+
 WITH
 staging AS (
     SELECT DISTINCT
